@@ -1,66 +1,48 @@
+# pokemon_info.py
 import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 
-BASE_URL = 'https://www.metaweather.com/api/location/'
+# Function to get Pokémon data from the API
+def get_pokemon_data(pokemon_name):
+    url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}'
+    response = requests.get(url)
 
-def get_city_woeid(city_name):
-    """Finds the WOEID (Where On Earth ID) of a city."""
-    search_url = BASE_URL + 'search/'
-    params = {'query': city_name}
+    if response.status_code == 200:
+        return response.json()
+    print(f"Error: Pokémon '{pokemon_name}' not found.")
+    return None
 
-    # Create a session with retry strategy
-    session = requests.Session()
-    retry = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
+# Function to display Pokémon details
+def display_pokemon_info(pokemon_data):
+    if pokemon_data:
+        name = pokemon_data['name'].capitalize()
+        pokemon_id = pokemon_data['id']
+        height = pokemon_data['height']
+        weight = pokemon_data['weight']
+        types = [t['type']['name'].capitalize() for t in pokemon_data['types']]
+        abilities = [a['ability']['name'].capitalize() for a in pokemon_data['abilities']]
 
-    try:
-        # Make the request using the session with retries
-        response = session.get(search_url, params=params)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Error occurred while fetching city WOEID: {e}")
-        return None
-
-    data = response.json()
-    if data:
-        return data[0]['woeid']
+        print(f"\nPokémon: {name}")
+        print(f"ID: {pokemon_id}")
+        print(f"Height: {height / 10} m")
+        print(f"Weight: {weight / 10} kg")
+        print(f"Type(s): {', '.join(types)}")
+        print(f"Abilities: {', '.join(abilities)}")
     else:
-        print(f"City '{city_name}' not found.")
-        return None
+        print("No data to display.")
 
-def get_weather(woeid):
-    """Fetches the current weather for a city using its WOEID."""
-    weather_url = BASE_URL + str(woeid) + '/'
-    
-    # Create a session with retry strategy
-    session = requests.Session()
-    retry = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
-    adapter = HTTPAdapter(max_retries=retry)
-    session.mount('https://', adapter)
-    
-    try:
-        response = session.get(weather_url)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"Error occurred while fetching weather data: {e}")
-        return
-    
-    data = response.json()
-    city = data['title']
-    weather_state = data['consolidated_weather'][0]['weather_state_name']
-    temperature = data['consolidated_weather'][0]['the_temp']
-    humidity = data['consolidated_weather'][0]['humidity']
-    
-    print(f"\nWeather in {city}:")
-    print(f"Temperature: {temperature:.2f}°C")
-    print(f"Humidity: {humidity}%")
-    print(f"Condition: {weather_state}")
+# Main function to interact with the user
+def main():
+    print("Welcome to the Pokémon Info Finder!")
+    while True:
+        pokemon_name = input("\nEnter the name of a Pokémon (or 'exit' to quit): ").strip()
+        
+        if pokemon_name.lower() == 'exit':
+            print("Goodbye!")
+            break
 
+        pokemon_data = get_pokemon_data(pokemon_name)
+        display_pokemon_info(pokemon_data)
+
+# Run the main function
 if __name__ == '__main__':
-    city = input("Enter city name: ")
-    woeid = get_city_woeid(city)
-    
-    if woeid:
-        get_weather(woeid)
+    main()
